@@ -104,4 +104,11 @@ MoveAnything_Strings = {
 	["Type /move to open or close the window. Type /move FrameName to move a frame by its name. Type /move pick to pick a frame on the screen. Type /move hide FrameName to hide or show a frame. Type /move done to stop moving all frames. Type /unmove FrameName to put a frame back where the game puts it. Type /move key <key> to set a key for the window. Type /movelist to see the saved layouts, /movecopy Name to copy one and /movedelete Name to delete one."] = "Type /move to open or close the window. Type /move FrameName to move a frame by its name. Type /move pick to pick a frame on the screen. Type /move hide FrameName to hide or show a frame. Type /move done to stop moving all frames. Type /unmove FrameName to put a frame back where the game puts it. Type /move key <key> to set a key for the window. Type /movelist to see the saved layouts, /movecopy Name to copy one and /movedelete Name to delete one.",
 	["Type /movecopy Name. /movelist shows the names."] = "Type /movecopy Name. /movelist shows the names.",
 	["Type /movedelete Name. /movelist shows the names."] = "Type /movedelete Name. /movelist shows the names.",
+	["Language"] = "Language",
+	["Language: %s"] = "Language: %s",
+	["Automatic"] = "Automatic",
+	["Choose a language. Applies immediately. Automatic follows the game language."] = "Choose a language. Applies immediately. Automatic follows the game language.",
+	["Language set to %s."] = "Language set to %s.",
+	["Unknown language. Use /move lang auto, en, pl, cs, de, pt, es, fr, ro, tr, ru, uk, zh, ja or ko."] = "Unknown language. Use /move lang auto, en, pl, cs, de, pt, es, fr, ro, tr, ru, uk, zh, ja or ko.",
+	["The frame \"%s\" is protected."] = "The frame \"%s\" is protected.",
 };

@@ -68,6 +68,8 @@ A new class or hero layout starts as a copy of the layout in use.
 | `/move done` | Stops moving all frames. |
 | `/move key <key>` | Sets a key that opens or closes the window. Example: `/move key F7`. |
 | `/move key none` | Removes the key. |
+| `/move lang fr` | Changes the addon language immediately. |
+| `/move lang auto` | Follows the game's detected language. |
 | `/move help` | Shows the commands. |
 | `/unmove FrameName` | Puts the frame back where the game puts it. |
 | `/movelist` | Shows the saved layouts. |
@@ -76,30 +78,58 @@ A new class or hero layout starts as a copy of the layout in use.
 
 The command `/moveanything` does the same thing as `/move`.
 
-## Translate the addon or change its words
+## Languages
 
-You can translate the addon into your language, or you can change only some of its words. You do not change the game files.
+The addon includes English, Polish, Czech, German, Brazilian Portuguese, Spanish,
+French, Romanian, Turkish, Russian, Ukrainian, Simplified Chinese, Japanese and
+Korean. Its own fonts support the supplied Latin, Cyrillic and CJK interface text.
 
-The file `Strings.lua` in the addon folder lists all the words of the addon in English. The file `Custom.lua` is the file for your translation. Each line in `Custom.lua` replaces the English words of the same line in `Strings.lua`. A line that is not in `Custom.lua` stays in English.
+Click the language button in `/move` to cycle through the choices. The change
+applies immediately, including labels already on screen. The selection is saved.
+For a direct choice, use `/move lang` followed by one of:
 
-To translate the addon:
+`auto`, `en`, `pl`, `cs`, `de`, `pt`, `es`, `fr`, `ro`, `tr`, `ru`, `uk`, `zh`, `ja`, `ko`.
 
-1. Open `Strings.lua`. Copy all the lines between the two braces into `Custom.lua`, between its two braces.
-2. On each line, write the translation on the right side of the equals sign. Example: `["Reset All"] = "Alles zurücksetzen",`
-3. Save `Custom.lua` as UTF-8. Start the game again. The addon reads the file when it loads.
+Automatic mode compares the game's native spell/class names, then falls back to
+`GetLocale`. This handles clients reporting `enUS` while the game text is translated.
+If detection is ambiguous, select the language yourself. Native game text, frame
+names and saved profile identifiers are not renamed by the addon.
 
-To change only some words, copy only those lines into `Custom.lua`. Example: `["Reset All"] = "Reset everything",`
+## Change your own words
+
+`Custom.lua` still overrides the built-in translations. To customize one message,
+copy its English key from `Strings.lua` and add the line inside the braces in
+`Custom.lua`, for example `["Reset All"] = "Reset everything",`. Save it as UTF-8
+and restart the game. Other messages keep the selected built-in language.
 
 Follow these rules:
 
 - Do not change the words on the left side. The addon uses them to find the line.
-- Keep the codes `%s`, `%d` and `%.2f` in the same order. They show names and numbers. If a code is not correct, the addon uses the English words for that line.
+- Keep the codes `%s`, `%d` and `%.2f` in the same order. They show names and numbers. Invalid overrides fall back to the selected built-in translation.
 - Keep the quotation marks at the start and the end of the words. To write a quotation mark in the words, write `\"`.
 - Do not translate the commands, such as `/move` and `/unmove`, in the words. The commands stay the same in all languages.
 - The names of the frames (such as `PlayerFrame`) and the names of the layouts (`Default`, `Class:`, `Hero:`) are not translated.
 - A new version can add lines or change the English words on the left side. A line in `Custom.lua` can then stop working. Compare your lines with `Strings.lua` after you update.
 - When you update the addon, keep your `Custom.lua` file.
 
+To improve a built-in translation, edit `locales/<language>.json` and regenerate
+the Lua. The [contributor guide](docs/CONTRIBUTING.md) explains each step, including
+testing, fonts and the code's frame/hook safeguards. Native-speaker review is welcome.
+
 ## Saved data
 
 The addon keeps its layouts in this file: `benilla-config/saved/MoveAnything.lua`. Push Reset All two times to put all the frames of the layout in use back where the game puts them.
+
+Root surfaces such as `UIParent` and `WorldFrame`, and the addon's own settings
+and picker, are protected from movement/hiding. Native game HUD screens remain
+show/hide only. Avoid letting two addons control the same moved frame.
+
+## Development checks
+
+From the repository root, run `lua tests/run.lua` with Lua 5.0.3,
+`python tools/build_locales.py --check`, and `python tools/check_assets.py`
+(the last check requires `fonttools`). These are simulated behavior and asset
+checks; the contributor guide includes the remaining manual checks in the game.
+
+`python tools/package.py` produces an installable `dist/MoveAnything.zip`.
+See the [proposed changelog](docs/CHANGELOG.md) for this contribution's scope.

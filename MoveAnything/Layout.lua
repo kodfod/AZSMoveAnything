@@ -1,12 +1,44 @@
 local A = MoveAnything;
-local Noop, ScaleOf, Raw = A.Noop, A.ScaleOf, A.Raw;
+local ScaleOf, Raw = A.ScaleOf, A.Raw;
 
 -- How a frame is held: the first time it is moved, its SetPoint / ClearAllPoints / SetAllPoints
 -- (and SetScale, SetWidth, SetHeight once those are changed) are shadowed on the frame itself by
--- no-ops, so the stock code (UIParent_ManageFramePositions and the like) can't put it back. The
+-- blockers, so the stock code (UIParent_ManageFramePositions and the like) can't put it back. The
 -- real methods stay on the frame as MA_SetPoint and so on. A moved frame is anchored by its
 -- BOTTOMLEFT to UIParent's, in its own scale, so it no longer follows its old parent around.
 -- Hiding works the same way: Show is shadowed, so the frame stays hidden whatever shows it.
+
+-- A later addon can wrap our blocker. On release, leave that newer wrapper in
+-- place and make its captured blocker forward to the previous implementation.
+-- Replacing only methods that still equal our wrapper prevents lost hooks;
+-- deactivating the captured wrapper prevents a preserved hook from staying blocked.
+local function Shadow(f, method)
+	f.MA_hooks = f.MA_hooks or {};
+	local hook = { active = true, previous = f[method] };
+	if ( method == "SetPoint" ) then
+		hook.wrapper = function(self, p, rel, rp, x, y)
+			if ( not hook.active ) then return hook.previous(self, p, rel, rp, x, y); end
+		end;
+	elseif ( method == "ClearAllPoints" ) then
+		hook.wrapper = function(self)
+			if ( not hook.active ) then return hook.previous(self); end
+		end;
+	else
+		hook.wrapper = function(self, value)
+			if ( not hook.active ) then return hook.previous(self, value); end
+		end;
+	end
+	f.MA_hooks[method] = hook;
+	f[method] = hook.wrapper;
+end
+
+local function Release(f, method)
+	local hook = f.MA_hooks and f.MA_hooks[method];
+	if ( not hook ) then return; end
+	hook.active = false;
+	if ( f[method] == hook.wrapper ) then f[method] = hook.previous; end
+	f.MA_hooks[method] = nil;
+end
 
 -- A frame's saved settings in the layout in use; `create` makes them.
 local function Opt(name, create)
@@ -31,7 +63,8 @@ local function Tidy(name)
 end
 
 local function Lock(f)
-	if ( f.MA_locked ) then return; end
+	if ( A.IsProtected(f:GetName(), f) ) then return false; end
+	if ( f.MA_locked ) then return true; end
 	f.MA_locked = true;
 	local orig = { scale = ScaleOf(f), w = f:GetWidth(), h = f:GetHeight(), points = {} };
 	local n = f.GetNumPoints and f:GetNumPoints() or 0;
@@ -43,23 +76,24 @@ local function Lock(f)
 	end
 	f.MA_orig = orig;
 	f.MA_SetPoint, f.MA_ClearAllPoints, f.MA_SetAllPoints = f.SetPoint, f.ClearAllPoints, f.SetAllPoints;
-	f.SetPoint, f.ClearAllPoints, f.SetAllPoints = Noop, Noop, Noop;
+	Shadow(f, "SetPoint"); Shadow(f, "ClearAllPoints"); Shadow(f, "SetAllPoints");
 	-- The client's own layout cache must not put it somewhere else at the next load.
 	if ( f.IsUserPlaced and f:IsUserPlaced() and f.SetUserPlaced ) then
 		f:SetUserPlaced(false);
 	end
+	return true;
 end
 
 local function LockScale(f)
 	if ( f.MA_SetScale ) then return; end
 	f.MA_SetScale = f.SetScale;
-	f.SetScale = Noop;
+	Shadow(f, "SetScale");
 end
 
 local function LockSize(f)
 	if ( f.MA_SetWidth ) then return; end
 	f.MA_SetWidth, f.MA_SetHeight = f.SetWidth, f.SetHeight;
-	f.SetWidth, f.SetHeight = Noop, Noop;
+	Shadow(f, "SetWidth"); Shadow(f, "SetHeight");
 end
 
 -- Back where and how big it was when MoveAnything first took it.
@@ -81,18 +115,14 @@ end
 
 local function Unlock(f)
 	if ( not f.MA_locked ) then return; end
-	f.SetPoint, f.ClearAllPoints, f.SetAllPoints = f.MA_SetPoint, f.MA_ClearAllPoints, f.MA_SetAllPoints;
+	for _, method in ipairs({ "SetPoint", "ClearAllPoints", "SetAllPoints", "SetScale", "SetWidth", "SetHeight" }) do Release(f, method); end
 	f.MA_SetPoint, f.MA_ClearAllPoints, f.MA_SetAllPoints = nil, nil, nil;
-	if ( f.MA_SetScale ) then f.SetScale = f.MA_SetScale; f.MA_SetScale = nil; end
-	if ( f.MA_SetWidth ) then
-		f.SetWidth, f.SetHeight = f.MA_SetWidth, f.MA_SetHeight;
-		f.MA_SetWidth, f.MA_SetHeight = nil, nil;
-	end
+	f.MA_SetScale, f.MA_SetWidth, f.MA_SetHeight, f.MA_hooks = nil, nil, nil, nil;
 	f.MA_locked, f.MA_orig, f.MA_sized = nil, nil, nil;
 end
 
 local function ApplyLayout(f, o)
-	Lock(f);
+	if ( not Lock(f) ) then return; end
 	if ( o.scale ) then
 		LockScale(f);
 		f.MA_SetScale(f, o.scale);
@@ -118,18 +148,30 @@ local function ApplyLayout(f, o)
 end
 
 local function HideFrame(f)
+	if ( A.IsProtected(f:GetName(), f) ) then return; end
 	if ( f.MA_hidden ) then return; end
 	f.MA_hidden = true;
 	f.MA_wantShown = f:IsShown();
 	f.MA_Show, f.MA_Hide = f.Show, f.Hide;
-	f.Show = function(self) self.MA_wantShown = 1; end;
-	f.Hide = function(self) self.MA_wantShown = nil; end;
+	local hook = { active = true, show = f.Show, hide = f.Hide };
+	hook.showWrapper = function(self)
+		if ( hook.active ) then self.MA_wantShown = 1; else return hook.show(self); end
+	end;
+	hook.hideWrapper = function(self)
+		if ( hook.active ) then self.MA_wantShown = nil; else return hook.hide(self); end
+	end;
+	f.MA_visibility = hook;
+	f.Show, f.Hide = hook.showWrapper, hook.hideWrapper;
 	f.MA_Hide(f);
 end
 
 local function ShowFrame(f)
 	if ( not f.MA_hidden ) then return; end
-	f.Show, f.Hide = f.MA_Show, f.MA_Hide;
+	local hook = f.MA_visibility;
+	hook.active = false;
+	if ( f.Show == hook.showWrapper ) then f.Show = hook.show; end
+	if ( f.Hide == hook.hideWrapper ) then f.Hide = hook.hide; end
+	f.MA_visibility = nil;
 	f.MA_Show, f.MA_Hide, f.MA_hidden = nil, nil, nil;
 	if ( f.MA_wantShown ) then f:Show(); end
 	f.MA_wantShown = nil;

@@ -17,11 +17,11 @@ end
 
 for _, def in ipairs(A.FRAME_LIST) do
 	if ( def.sep ) then
-		AddEntry({ kind = "sep", label = def.sep });
+		AddEntry({ kind = "sep", labelKey = def.sep, label = L(def.sep) });
 	elseif ( def.hud ) then
-		AddEntry({ kind = "hud", name = "hud:" .. def.hud, part = def.hud, label = def[1] });
+		AddEntry({ kind = "hud", name = "hud:" .. def.hud, part = def.hud, labelKey = def[1], label = L(def[1]) });
 	else
-		local e = { kind = "frame", name = def[1], label = def[2] };
+		local e = { kind = "frame", name = def[1], labelKey = def[2], label = L(def[2]) };
 		-- Every flag the list gives (noScale, noHide, wh, minW, minH, widthOf).
 		for k, v in pairs(def) do
 			if ( type(k) == "string" ) then e[k] = v; end
@@ -36,6 +36,7 @@ end
 
 -- A frame the player named or picked: it joins the list under "Your frames".
 local function AddCustom(name)
+	if ( A.IsProtected(name) ) then return; end
 	local e = A.byName[name];
 	if ( e ) then return e; end
 	e = { kind = "frame", name = name, label = name, custom = true };
@@ -59,6 +60,7 @@ local function CustomNames()
 end
 
 local function GetFrame(name)
+	if ( A.IsProtected(name) ) then return; end
 	local e = A.byName[name];
 	if ( e and e.kind == "hud" ) then return; end
 	if ( e and e.kind == "group" ) then return e.frame; end
@@ -89,6 +91,8 @@ local function IsMoving(name) return A.movers[name] and true; end
 
 -- Put one frame where its settings say. False when its frame doesn't exist (yet).
 local function ApplyEntry(name)
+	-- A stale or hand-edited saved profile must not bypass the command guard.
+	if ( A.IsProtected(name) ) then return true; end
 	local o = Opt(name);
 	if ( not o ) then return true; end
 	local e = A.byName[name];

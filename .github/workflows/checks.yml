@@ -1,0 +1,40 @@
+name: Addon checks
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'codex/**']
+
+permissions:
+  contents: read
+
+jobs:
+  legacy-lua-and-assets:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install font inspection dependency
+        run: python -m pip install fonttools==4.67.0
+      - name: Build the exact legacy Lua interpreter
+        working-directory: ${{ runner.temp }}
+        run: |
+          curl --fail --silent --show-error --location https://www.lua.org/ftp/lua-5.0.3.tar.gz --output lua-5.0.3.tar.gz
+          printf '1193a61b0e08acaa6eee0eecf29709179ee49c71baebc59b682a25c3b5a45671  lua-5.0.3.tar.gz\n' | sha256sum --check
+          tar -xzf lua-5.0.3.tar.gz
+          make -C lua-5.0.3 MYCFLAGS='-O2 -fcommon'
+      - name: Compile and exercise all addon Lua files
+        run: '"${{ runner.temp }}/lua-5.0.3/bin/lua" tests/run.lua'
+      - name: Check translations and fonts
+        run: |
+          python tools/build_locales.py --check
+          python tools/check_assets.py
+      - name: Package the test addon
+        run: python tools/package.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MoveAnything-test
+          path: dist/MoveAnything.zip*
+          if-no-files-found: error

@@ -5,9 +5,8 @@ local UIScale, Clamp, EffScale, StartMoving = A.UIScale, A.Clamp, A.EffScale, A.
 -- Finding frames: the one under the cursor, and the picker that outlines what it would take.
 
 local function Ignored(f)
-	if ( f == WorldFrame or f == UIParent ) then return true; end
 	local name = f:GetName();
-	return not name or string.find(name, "^MoveAnything");
+	return not name or A.IsProtected(name, f) or string.find(name, "^MoveAnything");
 end
 
 -- Every named, visible frame under the cursor, topmost first.
@@ -64,10 +63,12 @@ picker.box:SetBackdrop(BACKDROP);
 picker.box:SetBackdropColor(0.2, 0.5, 1, 0.25);
 picker.box:SetBackdropBorderColor(0.3, 0.7, 1, 1);
 picker.name = picker:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge");
+A.RegisterFont(picker.name, 15);
 picker.name:SetPoint("BOTTOM", picker.box, "TOP", 0, 4);
 picker.help = picker:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
 picker.help:SetPoint("TOP", picker, "TOP", 0, -90);
-picker.help:SetText(L("Pick a frame. Left-click moves it. The mouse wheel picks the frame under it. Right-click or Escape stops."));
+A.BindText(picker.help, "Pick a frame. Left-click moves it. The mouse wheel picks the frame under it. Right-click or Escape stops.", 12);
+picker.help:SetWidth(600); picker.help:SetHeight(60);
 picker.index, picker.wait = 1, 0;
 
 local function PickerUpdate()

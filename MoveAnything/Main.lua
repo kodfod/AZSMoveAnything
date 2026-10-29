@@ -24,11 +24,14 @@ function MoveAnything_Pick() Pick(); end
 -- For other addons and old macros.
 function MoveAnything_Move(name) return StartMoving(name); end
 
-BINDING_HEADER_MOVEANYTHING = L("MoveAnything!");
-BINDING_NAME_MOVEANYTHING_TOGGLE = L("Open or close MoveAnything!");
-BINDING_NAME_MOVEANYTHING_UNDERCURSOR = L("Move the frame under the cursor");
-BINDING_NAME_MOVEANYTHING_PICK = L("Pick a frame to move");
-BINDING_NAME_MOVEANYTHING_REFRESH = L("Put the moved frames back in place");
+function A.RefreshBindingLabels()
+	BINDING_HEADER_MOVEANYTHING = L("MoveAnything!");
+	BINDING_NAME_MOVEANYTHING_TOGGLE = L("Open or close MoveAnything!");
+	BINDING_NAME_MOVEANYTHING_UNDERCURSOR = L("Move the frame under the cursor");
+	BINDING_NAME_MOVEANYTHING_PICK = L("Pick a frame to move");
+	BINDING_NAME_MOVEANYTHING_REFRESH = L("Put the moved frames back in place");
+end
+A.RefreshBindingLabels();
 
 -- The game menu has an Edit Mode button with nothing behind it: it opens MoveAnything!.
 local function HookEditMode()
@@ -41,7 +44,7 @@ local function HookEditMode()
 		HideUIPanel(GameMenuFrame);
 		ToggleWindow();
 	end);
-	A.Tip(b, L("MoveAnything!"), L("Moves, scales and hides the parts of the interface."));
+	A.Tip(b, "MoveAnything!", "Moves, scales and hides the parts of the interface.");
 	local onShow = GameMenuFrame:GetScript("OnShow");
 	GameMenuFrame:SetScript("OnShow", function()
 		if ( onShow ) then onShow(); end
@@ -106,6 +109,12 @@ do
 			Help();
 		elseif ( cmd == "key" ) then
 			SetKey(string.upper(rest));
+		elseif ( cmd == "lang" ) then
+			if ( A.SetLanguage(string.lower(rest)) ) then
+				Print(LF("Language set to %s.", A.LanguageLabel()));
+			else
+				Print(L("Unknown language. Use /move lang auto, en, pl, cs, de, pt, es, fr, ro, tr, ru, uk, zh, ja or ko."));
+			end
 		elseif ( cmd == "pick" ) then
 			Pick();
 		elseif ( cmd == "done" ) then
@@ -113,8 +122,9 @@ do
 		elseif ( cmd == "refresh" ) then
 			MoveAnything_RefreshPositions();
 		elseif ( cmd == "hide" and rest ~= "" ) then
-			AddCustom(rest);
-			if ( GetFrame(rest) ) then
+			if ( A.IsProtected(rest) ) then
+				Print(LF("The frame \"%s\" is protected.", rest));
+			elseif ( AddCustom(rest) and GetFrame(rest) ) then
 				SetHidden(rest, not IsHidden(rest));
 			else
 				Print(LF("There is no frame \"%s\". Frame names are case-sensitive.", rest));
@@ -159,7 +169,10 @@ local function Init()
 	A.db.mode = A.db.mode or {};
 	A.db.custom = A.db.custom or {};
 	A.db.settings = A.db.settings or {};
-	for name in pairs(A.db.custom) do AddCustom(name); end
+	-- A chosen language applies now; Automatic is checked once at startup (below).
+	local language = A.db.settings.language;
+	if ( language and language ~= "auto" ) then A.RefreshLanguage(true); end
+	for name in pairs(A.db.custom) do if ( not AddCustom(name) ) then A.db.custom[name]=nil; end end
 end
 
 A.events = CreateFrame("Frame");
@@ -170,6 +183,7 @@ do
 	-- Lay the layout out again each second for a while after the world loads: frames the game
 	-- builds late, and stock code that places things right after the load.
 	local settleUntil, settleWait = 0, 0;
+	local languageDone = false;
 
 	A.events:SetScript("OnEvent", function()
 		if ( event == "ADDON_LOADED" ) then
@@ -177,6 +191,11 @@ do
 			if ( A.profile ) then ApplyPending(); end
 		elseif ( event == "PLAYER_ENTERING_WORLD" ) then
 			Init();
+			-- Check the language once at startup, not every 5 seconds.
+			if ( not languageDone ) then
+				languageDone = true;
+				A.RefreshLanguage(true);
+			end
 			if ( not A.profile ) then SelectProfile(); end
 			RefreshPositions();
 			HookEditMode();

@@ -38,7 +38,22 @@ A.profileKey = nil;
 
 local function L(text)
 	local custom, strings = MoveAnything_Custom, MoveAnything_Strings;
-	return (custom and custom[text]) or (strings and strings[text]) or text;
+	local base = (strings and strings[text]) or text;
+	local locale = MoveAnything_Locales and MoveAnything_Locales[A.language or "en"];
+	-- User overrides still win, but an invalid placeholder must not break a UI callback.
+	if ( custom and A.ValidTranslation and A.ValidTranslation(base, custom[text]) ) then return custom[text]; end
+	return (locale and locale[text]) or base;
+end
+
+-- Commands, saved layouts and the picker share this check. Object identity also
+-- catches aliases such as MyRoot = UIParent, which a name-only blacklist misses.
+local function IsProtected(name, frame)
+	if ( type(name) ~= "string" or name == "" ) then return true; end
+	frame = frame or getglobal(name);
+	if ( frame and (frame == UIParent or frame == WorldFrame or frame == GlueParent) ) then return true; end
+	if ( name == "UIParent" or name == "WorldFrame" or name == "GlueParent" or
+		name == "GameMenuFrame" or name == "BenillaOptionsFrame" ) then return true; end
+	return string.find(name, "^MoveAnything") and not A.specials[name];
 end
 
 local function LF(key, a, b, c, d)
@@ -81,12 +96,13 @@ end
 
 local function Tip(frame, title, line)
 	frame:SetScript("OnEnter", function()
-		GameTooltip:SetOwner(this, "ANCHOR_RIGHT");
-		GameTooltip:SetText(title);
-		if ( line ) then GameTooltip:AddLine(line, 1, 1, 1, 1); end
-		GameTooltip:Show();
+		local tip = A.HelpTooltip();
+		tip:SetOwner(this, "ANCHOR_RIGHT");
+		tip:SetText(L(title));
+		if ( line ) then tip:AddLine(L(line), 1, 1, 1, 1); end
+		A.StyleTooltip(tip); tip:Show();
 	end);
-	frame:SetScript("OnLeave", function() GameTooltip:Hide(); end);
+	frame:SetScript("OnLeave", function() A.HideHelpTooltip(); end);
 end
 
 -- A stock button. It needs a name: the template looks its textures up by its name.
@@ -94,7 +110,7 @@ local function Button(name, parent, text, w, h)
 	local b = CreateFrame("Button", name, parent, "UIPanelButtonTemplate");
 	b:SetWidth(w);
 	b:SetHeight(h or 22);
-	b:SetText(text);
+	A.BindText(b, text, 11);
 	return b;
 end
 
@@ -110,6 +126,7 @@ A.GREY = GREY;
 A.TEXT = TEXT;
 A.BACKDROP = BACKDROP;
 A.L = L;
+A.IsProtected = IsProtected;
 A.LF = LF;
 A.Print = Print;
 A.Noop = Noop;

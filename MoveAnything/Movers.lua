@@ -162,10 +162,12 @@ local function NewMover()
 	m:RegisterForDrag("LeftButton");
 	m:SetBackdrop(BACKDROP);
 	m.label = m:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+	A.RegisterFont(m.label, 12);
 	m.label:SetPoint("CENTER", m, "CENTER", 0, 6);
 	m.hint = m:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall");
 	m.hint:SetPoint("TOP", m.label, "BOTTOM", 0, -2);
-	m.hint:SetText(L("Drag to move. Right-click when done."));
+	A.BindText(m.hint, "Drag to move. Right-click when done.", 10);
+	m.hint:SetWidth(300); m.hint:SetHeight(30);
 
 	m.handles = {};
 	for edge, point in pairs(HANDLES) do
@@ -190,7 +192,7 @@ local function NewMover()
 				StopSizing(this:GetParent());
 			end
 		end);
-		A.Tip(hb, L("Drag to scale"), L("Hold Alt while you drag to change the width or the height."));
+		A.Tip(hb, "Drag to scale", "Hold Alt while you drag to change the width or the height.");
 		m.handles[edge] = hb;
 	end
 
@@ -234,6 +236,10 @@ local function NewMover()
 end
 
 local function StartMoving(name)
+	if ( A.IsProtected(name) ) then
+		Print(LF("The frame \"%s\" is protected.", tostring(name)));
+		return;
+	end
 	if ( A.movers[name] ) then
 		SetCurrent(name);
 		return true;

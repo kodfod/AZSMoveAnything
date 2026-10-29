@@ -5,8 +5,10 @@
 ## Author: Kodfod (based on MoveAnything! by Skrag and Jason)
 ## SavedVariables: MoveAnythingDB
 Strings.lua
+Locales.lua
 Custom.lua
 Core.lua
+Locale.lua
 Frames.lua
 Layout.lua
 Spots.lua

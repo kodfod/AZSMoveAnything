@@ -11,7 +11,8 @@ local ProfileKey, LayoutMode, SetLayoutMode, ClassLabel = A.ProfileKey, A.Layout
 local ROWS, ui, Update;
 
 do
-	local W, H = 520, 580;
+	-- Extra room for translated captions; keep this window within smaller screens.
+	local W, H = 740, 606;
 	local ROW_H = 22;
 	local LIST_TOP = -84;
 	ROWS = 18;
@@ -21,6 +22,7 @@ do
 	ui.frame = CreateFrame("Frame", "MoveAnythingOptions", UIParent);
 	ui.frame:SetWidth(W);
 	ui.frame:SetHeight(H);
+	ui.frame:SetScale(math.min(1, (UIParent:GetWidth()-24)/W, (UIParent:GetHeight()-24)/H));
 	ui.frame:SetPoint("CENTER", UIParent, "CENTER", 0, 20);
 	ui.frame:SetFrameStrata("FULLSCREEN_DIALOG");
 	ui.frame:SetToplevel(true);
@@ -47,7 +49,7 @@ do
 	header:SetPoint("TOP", ui.frame, "TOP", 0, 12);
 	local title = ui.frame:CreateFontString(nil, "OVERLAY", "GameFontNormal");
 	title:SetPoint("TOP", header, "TOP", 0, -14);
-	title:SetText(L("MoveAnything!"));
+	A.BindText(title, "MoveAnything!", 13);
 
 	local close = CreateFrame("Button", "MoveAnythingOptionsClose", ui.frame, "UIPanelCloseButton");
 	close:SetPoint("TOPRIGHT", ui.frame, "TOPRIGHT", -6, -6);
@@ -55,9 +57,10 @@ do
 	-- The filter box.
 	local filterLabel = ui.frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall");
 	filterLabel:SetPoint("TOPLEFT", ui.frame, "TOPLEFT", 26, -40);
-	filterLabel:SetText(L("Filter:"));
+	A.BindText(filterLabel, "Filter:", 11);
 	ui.search = CreateFrame("EditBox", "MoveAnythingOptionsSearch", ui.frame, "InputBoxTemplate");
 	ui.search:SetWidth(170);
+	A.RegisterFont(ui.search, 12);
 	ui.search:SetHeight(20);
 	ui.search:SetPoint("LEFT", filterLabel, "RIGHT", 12, 0);
 	if ( ui.search.SetAutoFocus ) then ui.search:SetAutoFocus(false); end
@@ -66,24 +69,26 @@ do
 	ui.search:SetScript("OnTextChanged", function() Update(); end);
 
 	ui.profile = ui.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall");
+	A.RegisterFont(ui.profile, 11);
+	ui.profile:SetWidth(300); ui.profile:SetJustifyH("RIGHT");
 	ui.profile:SetPoint("TOPRIGHT", ui.frame, "TOPRIGHT", -30, -44);
 
 	-- The column heads.
 	local function Head(text, x, tipTitle, tipLine)
 		local b = CreateFrame("Frame", nil, ui.frame);
-		b:SetWidth(50);
+		b:SetWidth(74);
 		b:SetHeight(16);
 		b:SetPoint("TOPLEFT", ui.frame, "TOPLEFT", x, -64);
 		b:EnableMouse(true);
 		local fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall");
 		fs:SetPoint("LEFT", b, "LEFT", 0, 0);
-		fs:SetText(text);
+		A.BindText(fs, text, 10);
 		if ( tipTitle ) then Tip(b, tipTitle, tipLine); end
 	end
-	Head(L("Frame"), 28);
-	Head(L("Move"), 312, L("Move"),
-		L("Puts an overlay on the frame. Drag the overlay to move the frame. Drag a gold handle to scale it. Hold Alt while you drag a handle to change the width or the height. Right-click when you are done. Shift-right-click hides the overlay so you can see the frame. The arrow keys move the frame while the cursor is on the overlay."));
-	Head(L("Hide"), 356, L("Hide"), L("Keeps the frame hidden. The game cannot show it again."));
+	Head("Frame", 28);
+	Head("Move", 446, "Move",
+		"Puts an overlay on the frame. Drag the overlay to move the frame. Drag a gold handle to scale it. Hold Alt while you drag a handle to change the width or the height. Right-click when you are done. Shift-right-click hides the overlay so you can see the frame. The arrow keys move the frame while the cursor is on the overlay.");
+	Head("Hide", 522, "Hide", "Keeps the frame hidden. The game cannot show it again.");
 
 	ui.scroll = CreateFrame("ScrollFrame", "MoveAnythingOptionsScroll", ui.frame, "FauxScrollFrameTemplate");
 	ui.scroll:SetPoint("TOPLEFT", ui.frame, "TOPLEFT", 24, LIST_TOP);
@@ -101,17 +106,18 @@ do
 	local function RowTooltip()
 		local e = this.entry;
 		if ( not e or e.kind == "sep" ) then return; end
-		GameTooltip:SetOwner(this, "ANCHOR_RIGHT");
-		GameTooltip:SetText(e.label or e.name);
+		local tip = A.HelpTooltip();
+		tip:SetOwner(this, "ANCHOR_RIGHT");
+		tip:SetText(e.label or e.name);
 		if ( e.kind == "hud" ) then
-			GameTooltip:AddLine(L("The game draws this part itself. You can hide it, but you cannot move it. This is the same setting as Options > Interface."), 1, 1, 1, 1);
+			tip:AddLine(L("The game draws this part itself. You can hide it, but you cannot move it. This is the same setting as Options > Interface."), 1, 1, 1, 1);
 		else
-			GameTooltip:AddLine(e.name, 0.7, 0.7, 0.7);
+			tip:AddLine(e.name, 0.7, 0.7, 0.7);
 			if ( not GetFrame(e.name) and e.kind ~= "group" ) then
-				GameTooltip:AddLine(L("This frame is not loaded now."), 1, 0.4, 0.4);
+				tip:AddLine(L("This frame is not loaded now."), 1, 0.4, 0.4);
 			end
 		end
-		GameTooltip:Show();
+		A.StyleTooltip(tip); tip:Show();
 	end
 
 	ui.rows = {};
@@ -125,18 +131,20 @@ do
 		row:EnableMouseWheel(true);
 		row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight");
 		row:SetScript("OnEnter", RowTooltip);
-		row:SetScript("OnLeave", function() GameTooltip:Hide(); end);
+		row:SetScript("OnLeave", function() A.HideHelpTooltip(); end);
 		row:SetScript("OnMouseWheel", Wheel);
 
 		row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
+		A.RegisterFont(row.label, 11);
 		row.label:SetPoint("LEFT", row, "LEFT", 4, 0);
-		row.label:SetWidth(276);
+		row.label:SetWidth(400);
+		row.label:SetHeight(18);
 		row.label:SetJustifyH("LEFT");
 
 		row.move = CreateFrame("CheckButton", name .. "Move", row, "UICheckButtonTemplate");
 		row.move:SetWidth(24);
 		row.move:SetHeight(24);
-		row.move:SetPoint("LEFT", row, "LEFT", 286, 0);
+		row.move:SetPoint("LEFT", row, "LEFT", 422, 0);
 		row.move:SetScript("OnClick", function()
 			local e = this:GetParent().entry;
 			if ( e ) then ToggleMoving(e.name); end
@@ -146,7 +154,7 @@ do
 		row.hide = CreateFrame("CheckButton", name .. "Hide", row, "UICheckButtonTemplate");
 		row.hide:SetWidth(24);
 		row.hide:SetHeight(24);
-		row.hide:SetPoint("LEFT", row, "LEFT", 330, 0);
+		row.hide:SetPoint("LEFT", row, "LEFT", 498, 0);
 		row.hide:SetScript("OnClick", function()
 			local e = this:GetParent().entry;
 			if ( not e ) then return; end
@@ -155,8 +163,8 @@ do
 			Update();
 		end);
 
-		row.reset = Button(name .. "Reset", row, L("Reset"), 60, 20);
-		row.reset:SetPoint("LEFT", row, "LEFT", 380, 0);
+		row.reset = Button(name .. "Reset", row, "Reset", 90, 20);
+		row.reset:SetPoint("LEFT", row, "LEFT", 560, 0);
 		row.reset:SetScript("OnClick", function()
 			local e = this:GetParent().entry;
 			if ( e ) then ResetEntry(e.name); end
@@ -167,13 +175,14 @@ do
 
 	-- What's under the cursor (the frame finder), whom the layout is for, and the buttons.
 	ui.finder = ui.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall");
-	ui.finder:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", 28, 84);
+	A.RegisterFont(ui.finder, 11);
+	ui.finder:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", 28, 106);
 	ui.finder:SetWidth(W - 56);
 	ui.finder:SetJustifyH("LEFT");
 
 	local modeLabel = ui.frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall");
-	modeLabel:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", 28, 54);
-	modeLabel:SetText(L("Layout for:"));
+	modeLabel:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", 28, 68);
+	A.BindText(modeLabel, "Layout for:", 11);
 
 	-- Three choices that work as one: all heroes, this class, this hero (name and class).
 	ui.modes = {};
@@ -182,22 +191,23 @@ do
 		local c = CreateFrame("CheckButton", name, ui.frame, "UICheckButtonTemplate");
 		c:SetWidth(24);
 		c:SetHeight(24);
-		c:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", x, 48);
+		c:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", x, 62);
 		c.mode, c.text = key, getglobal(name .. "Text");
+		A.RegisterFont(c.text, 10); c.text:SetWidth(150); c.text:SetJustifyH("LEFT");
 		c:SetScript("OnClick", function() SetLayoutMode(this.mode); Update(); end);
 		Tip(c, tipTitle, tipLine);
 		table.insert(ui.modes, c);
 		return c;
 	end
-	Mode(nil, 96, L("All heroes"), L("All heroes and classes use one layout."));
-	Mode("class", 196, L("This class"), L("All the heroes of this class use one layout. It starts as a copy of the layout in use."));
-	Mode("hero", 370, L("This hero"), L("Only this hero uses the layout. A hero is its name and its class, so the same name in another class has its own layout. It starts as a copy of the layout in use."));
+	Mode(nil, 126, "All heroes", "All heroes and classes use one layout.");
+	Mode("class", 306, "This class", "All the heroes of this class use one layout. It starts as a copy of the layout in use.");
+	Mode("hero", 496, "This hero", "Only this hero uses the layout. A hero is its name and its class, so the same name in another class has its own layout. It starts as a copy of the layout in use.");
 
-	local closeButton = Button("MoveAnythingOptionsDone", ui.frame, L("Close"), 80);
+	local closeButton = Button("MoveAnythingOptionsDone", ui.frame, "Close", 80);
 	closeButton:SetPoint("BOTTOMRIGHT", ui.frame, "BOTTOMRIGHT", -22, 18);
 	closeButton:SetScript("OnClick", function() ui.frame:Hide(); end);
 
-	ui.resetAll = Button("MoveAnythingOptionsResetAll", ui.frame, L("Reset All"), 96);
+	ui.resetAll = Button("MoveAnythingOptionsResetAll", ui.frame, "Reset All", 134);
 	ui.resetAll:SetPoint("RIGHT", closeButton, "LEFT", -6, 0);
 	ui.resetAll:SetScript("OnClick", function()
 		-- Two clicks within three seconds, in place of a popup that would open behind this window.
@@ -210,18 +220,25 @@ do
 			this:SetText(L("Click again"));
 		end
 	end);
-	Tip(ui.resetAll, L("Reset All"), L("Puts all the frames of this layout back where the game puts them. Push two times."));
+	Tip(ui.resetAll, "Reset All", "Puts all the frames of this layout back where the game puts them. Push two times.");
 
-	local stopAll = Button("MoveAnythingOptionsStopAll", ui.frame, L("Done Moving"), 106);
+	local stopAll = Button("MoveAnythingOptionsStopAll", ui.frame, "Done Moving", 130);
 	stopAll:SetPoint("RIGHT", ui.resetAll, "LEFT", -6, 0);
 	stopAll:SetScript("OnClick", function() StopAll(); end);
-	Tip(stopAll, L("Done Moving"), L("Removes the overlays from all the frames that you move."));
+	Tip(stopAll, "Done Moving", "Removes the overlays from all the frames that you move.");
 
-	local pick = Button("MoveAnythingOptionsPick", ui.frame, L("Pick Frame"), 100);
+	local pick = Button("MoveAnythingOptionsPick", ui.frame, "Pick Frame", 130);
 	pick:SetPoint("RIGHT", stopAll, "LEFT", -6, 0);
 	pick:SetScript("OnClick", function() Pick(); end);
-	Tip(pick, L("Pick Frame"),
-		L("Shows the frame under the cursor. Left-click to move it. The mouse wheel picks the frame under it. The frame then shows in the list under \"Your frames\". /move FrameName does the same with the name of a frame."));
+	Tip(pick, "Pick Frame",
+		"Shows the frame under the cursor. Left-click to move it. The mouse wheel picks the frame under it. The frame then shows in the list under \"Your frames\". /move FrameName does the same with the name of a frame.");
+
+	-- On the button row, left of Pick Frame. 160 wide holds the longest label (Portuguese,
+	-- "Idioma: Português (Brasil)", about 134 at size 11).
+	ui.language = Button("MoveAnythingLanguageButton", ui.frame, "Language", 160);
+	ui.language:SetPoint("RIGHT", pick, "LEFT", -6, 0);
+	ui.language:SetScript("OnClick", function() A.CycleLanguage(); end);
+	Tip(ui.language, "Language", "Choose a language. Applies immediately. Automatic follows the game language.");
 end
 
 local function Paint(fs, c) fs:SetTextColor(c[1], c[2], c[3]); end
@@ -235,6 +252,7 @@ end
 local CUSTOM_SEP = { kind = "sep", label = L("Your frames") };
 
 local function BuildList()
+	CUSTOM_SEP.label = L("Your frames");
 	local list = {};
 	local filter = string.lower(ui.search:GetText() or "");
 	local sep;
@@ -298,6 +316,9 @@ end
 
 function Update()
 	if ( not ui.frame:IsShown() or not ProfileKey() ) then return; end
+	ui.frame:SetScale(math.min(1, (UIParent:GetWidth()-24)/740, (UIParent:GetHeight()-24)/650));
+	ui.language:SetText(LF("Language: %s", A.LanguageLabel()));
+	ui.resetAll:SetText(L(ui.resetAll.armed and "Click again" or "Reset All"));
 	local list = BuildList();
 	FauxScrollFrame_Update(ui.scroll, table.getn(list), ROWS, 22);
 	local offset = FauxScrollFrame_GetOffset(ui.scroll);
