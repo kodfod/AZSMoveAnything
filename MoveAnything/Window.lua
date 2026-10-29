@@ -12,7 +12,7 @@ local ROWS, ui, Update;
 
 do
 	-- Extra room for translated captions; keep this window within smaller screens.
-	local W, H = 740, 650;
+	local W, H = 740, 606;
 	local ROW_H = 22;
 	local LIST_TOP = -84;
 	ROWS = 18;
@@ -176,12 +176,12 @@ do
 	-- What's under the cursor (the frame finder), whom the layout is for, and the buttons.
 	ui.finder = ui.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall");
 	A.RegisterFont(ui.finder, 11);
-	ui.finder:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", 28, 150);
+	ui.finder:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", 28, 106);
 	ui.finder:SetWidth(W - 56);
 	ui.finder:SetJustifyH("LEFT");
 
 	local modeLabel = ui.frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall");
-	modeLabel:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", 28, 112);
+	modeLabel:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", 28, 68);
 	A.BindText(modeLabel, "Layout for:", 11);
 
 	-- Three choices that work as one: all heroes, this class, this hero (name and class).
@@ -191,7 +191,7 @@ do
 		local c = CreateFrame("CheckButton", name, ui.frame, "UICheckButtonTemplate");
 		c:SetWidth(24);
 		c:SetHeight(24);
-		c:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", x, 106);
+		c:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", x, 62);
 		c.mode, c.text = key, getglobal(name .. "Text");
 		A.RegisterFont(c.text, 10); c.text:SetWidth(150); c.text:SetJustifyH("LEFT");
 		c:SetScript("OnClick", function() SetLayoutMode(this.mode); Update(); end);
@@ -202,11 +202,6 @@ do
 	Mode(nil, 126, "All heroes", "All heroes and classes use one layout.");
 	Mode("class", 306, "This class", "All the heroes of this class use one layout. It starts as a copy of the layout in use.");
 	Mode("hero", 496, "This hero", "Only this hero uses the layout. A hero is its name and its class, so the same name in another class has its own layout. It starts as a copy of the layout in use.");
-
-	ui.language = Button("MoveAnythingLanguageButton", ui.frame, "Language", 300, 25);
-	ui.language:SetPoint("BOTTOMLEFT", ui.frame, "BOTTOMLEFT", 28, 60);
-	ui.language:SetScript("OnClick", function() A.CycleLanguage(); end);
-	Tip(ui.language, "Language", "Choose a language. Applies immediately. Automatic follows the game language.");
 
 	local closeButton = Button("MoveAnythingOptionsDone", ui.frame, "Close", 80);
 	closeButton:SetPoint("BOTTOMRIGHT", ui.frame, "BOTTOMRIGHT", -22, 18);
@@ -237,6 +232,13 @@ do
 	pick:SetScript("OnClick", function() Pick(); end);
 	Tip(pick, "Pick Frame",
 		"Shows the frame under the cursor. Left-click to move it. The mouse wheel picks the frame under it. The frame then shows in the list under \"Your frames\". /move FrameName does the same with the name of a frame.");
+
+	-- On the button row, left of Pick Frame. 160 wide holds the longest label (Portuguese,
+	-- "Idioma: Português (Brasil)", about 134 at size 11).
+	ui.language = Button("MoveAnythingLanguageButton", ui.frame, "Language", 160);
+	ui.language:SetPoint("RIGHT", pick, "LEFT", -6, 0);
+	ui.language:SetScript("OnClick", function() A.CycleLanguage(); end);
+	Tip(ui.language, "Language", "Choose a language. Applies immediately. Automatic follows the game language.");
 end
 
 local function Paint(fs, c) fs:SetTextColor(c[1], c[2], c[3]); end
