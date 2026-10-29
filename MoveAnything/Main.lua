@@ -169,7 +169,9 @@ local function Init()
 	A.db.mode = A.db.mode or {};
 	A.db.custom = A.db.custom or {};
 	A.db.settings = A.db.settings or {};
-	A.RefreshLanguage(true);
+	-- A chosen language applies now; Automatic is checked once at startup (below).
+	local language = A.db.settings.language;
+	if ( language and language ~= "auto" ) then A.RefreshLanguage(true); end
 	for name in pairs(A.db.custom) do if ( not AddCustom(name) ) then A.db.custom[name]=nil; end end
 end
 
@@ -180,7 +182,8 @@ A.events:RegisterEvent("PLAYER_ENTERING_WORLD");
 do
 	-- Lay the layout out again each second for a while after the world loads: frames the game
 	-- builds late, and stock code that places things right after the load.
-	local settleUntil, settleWait, languageWait = 0, 0, 0;
+	local settleUntil, settleWait = 0, 0;
+	local languageDone = false;
 
 	A.events:SetScript("OnEvent", function()
 		if ( event == "ADDON_LOADED" ) then
@@ -188,6 +191,11 @@ do
 			if ( A.profile ) then ApplyPending(); end
 		elseif ( event == "PLAYER_ENTERING_WORLD" ) then
 			Init();
+			-- Check the language once at startup, not every 5 seconds.
+			if ( not languageDone ) then
+				languageDone = true;
+				A.RefreshLanguage(true);
+			end
 			if ( not A.profile ) then SelectProfile(); end
 			RefreshPositions();
 			HookEditMode();
@@ -197,9 +205,6 @@ do
 	end);
 
 	A.events:SetScript("OnUpdate", function()
-		-- Language changes are checked independently of the ten-second layout settling.
-		languageWait = languageWait - arg1;
-		if ( A.db and languageWait <= 0 ) then languageWait=5; A.RefreshLanguage(); end
 		if ( settleUntil == 0 ) then return; end
 		settleWait = settleWait - arg1;
 		if ( settleWait > 0 ) then return; end

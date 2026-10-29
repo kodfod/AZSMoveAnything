@@ -53,7 +53,7 @@ language. A player can always choose a language explicitly.
 `locales/probes.json` contains only these class/spell names, observed from the
 installed client used for development. It contains no executable game code.
 If the game changes those names, update the probe values and regenerate Lua.
-Automatic mode checks for changes every five seconds; an explicit selection
+Automatic mode checks the language once at startup; an explicit selection
 stays selected. Class and hero profile **keys** are not translated or renamed.
 
 ## Fonts and clipping

@@ -128,4 +128,3 @@ function A.StyleTooltip(tip)
 	end
 end
 function A.HideHelpTooltip() if ( A.helpTip ) then A.helpTip:Hide(); end end
-A.RefreshLanguage();
