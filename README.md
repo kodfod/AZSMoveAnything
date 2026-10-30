@@ -28,7 +28,6 @@ When the overlay is on a frame:
 
 - Drag the overlay to move the frame.
 - Drag a gold handle on an edge or a corner to scale the frame.
-- Hold Alt while you drag a handle to change the width or the height instead.
 - Push the arrow keys while the cursor is on the overlay to move the frame by 1. Hold Shift to move it by 10.
 - Right-click the overlay when you are done. Escape also stops.
 - Shift-right-click the overlay to hide its color, so that you can see the frame.

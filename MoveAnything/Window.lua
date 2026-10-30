@@ -87,7 +87,7 @@ do
 	end
 	Head("Frame", 28);
 	Head("Move", 446, "Move",
-		"Puts an overlay on the frame. Drag the overlay to move the frame. Drag a gold handle to scale it. Hold Alt while you drag a handle to change the width or the height. Right-click when you are done. Shift-right-click hides the overlay so you can see the frame. The arrow keys move the frame while the cursor is on the overlay.");
+		"Puts an overlay on the frame. Drag the overlay to move the frame. Drag a gold handle to scale it. Right-click when you are done. Shift-right-click hides the overlay so you can see the frame. The arrow keys move the frame while the cursor is on the overlay.");
 	Head("Hide", 522, "Hide", "Keeps the frame hidden. The game cannot show it again.");
 
 	ui.scroll = CreateFrame("ScrollFrame", "MoveAnythingOptionsScroll", ui.frame, "FauxScrollFrameTemplate");

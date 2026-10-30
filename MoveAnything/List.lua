@@ -105,6 +105,8 @@ local function ApplyEntry(name)
 	local f = GetFrame(name);
 	if ( not f ) then return false; end
 	SetFallbackSize(f, e);
+	-- A width or height saved by the old Alt-drag is dropped: only scaling resizes a frame now.
+	if ( (o.w or o.h) and f.SetScale and not (e and e.wh) ) then o.w, o.h = nil, nil; end
 	if ( HasLayout(o) ) then ApplyLayout(f, o); end
 	if ( o.hidden ) then HideFrame(f); end
 	if ( e and e.onApply ) then e.onApply(e, f); end

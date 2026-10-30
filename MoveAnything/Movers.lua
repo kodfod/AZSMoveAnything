@@ -6,7 +6,7 @@ local Opt, HasLayout, Tidy, Lock, LockScale, LockSize, Unlock, ApplyLayout = A.O
 local AddCustom, DropCustom, GetFrame, ApplyEntry, ResetEntry, BuildGroup = A.AddCustom, A.DropCustom, A.GetFrame, A.ApplyEntry, A.ResetEntry, A.BuildGroup;
 
 -- Movers: the overlay laid over a frame while it is moved. Drag it to move, drag an edge handle
--- to scale (Alt: width / height), right-click to finish, Shift-right-click for a clear view.
+-- to scale, right-click to finish, Shift-right-click for a clear view.
 -- Arrow keys nudge while the cursor is on it (Shift: 10), Escape finishes.
 
 local HANDLES = {
@@ -84,7 +84,7 @@ local function StartSizing(m, edge)
 	local f = m.target;
 	m.sizing = {
 		edge = edge, l = m:GetLeft(), b = m:GetBottom(), w = m:GetWidth(), h = m:GetHeight(),
-		scale = ScaleOf(f), wh = m.entry.wh or IsAltKeyDown() or not f.SetScale,
+		scale = ScaleOf(f), wh = m.entry.wh or not f.SetScale,
 	};
 end
 
@@ -192,7 +192,7 @@ local function NewMover()
 				StopSizing(this:GetParent());
 			end
 		end);
-		A.Tip(hb, "Drag to scale", "Hold Alt while you drag to change the width or the height.");
+		A.Tip(hb, "Drag to scale");
 		m.handles[edge] = hb;
 	end
 
