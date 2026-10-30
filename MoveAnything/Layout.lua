@@ -113,12 +113,69 @@ local function Restore(f)
 	end
 end
 
+local UnroomText;
+
 local function Unlock(f)
 	if ( not f.MA_locked ) then return; end
+	UnroomText(f);
 	for _, method in ipairs({ "SetPoint", "ClearAllPoints", "SetAllPoints", "SetScale", "SetWidth", "SetHeight" }) do Release(f, method); end
 	f.MA_SetPoint, f.MA_ClearAllPoints, f.MA_SetAllPoints = nil, nil, nil;
 	f.MA_SetScale, f.MA_SetWidth, f.MA_SetHeight, f.MA_hooks = nil, nil, nil, nil;
 	f.MA_locked, f.MA_orig, f.MA_sized = nil, nil, nil;
+end
+
+-- Text that sizes itself to its words can lose them when its frame is scaled: the game measures
+-- the text at a rounded pixel size, draws it a little wider than that, then cuts it short (the
+-- level "1" on the player frame turns into a dot at scales such as 1.25 and 2.5). A scaled
+-- frame's self-sizing texts get TEXT_ROOM more width, set again each time their text changes.
+-- One unit was enough up to scale 4 in the game.
+local TEXT_ROOM = 2;
+
+local function FitText(fs)
+	local w = fs:GetStringWidth();
+	if ( w and w > 0 ) then fs:SetWidth(w + TEXT_ROOM); end
+end
+
+local function SizesItself(fs)
+	if ( not fs.GetStringWidth or (fs.GetNumPoints and fs:GetNumPoints() ~= 1) ) then return false; end
+	return math.abs((fs:GetWidth() or 0) - (fs:GetStringWidth() or 0)) < 0.05;
+end
+
+local function RoomText(f, list, depth)
+	if ( depth > 6 ) then return; end
+	if ( f.GetRegions ) then
+		for _, r in ipairs({ f:GetRegions() }) do
+			if ( r.GetObjectType and r:GetObjectType() == "FontString" and not r.MA_room and SizesItself(r) ) then
+				local hook = { active = true, previous = r.SetText };
+				hook.wrapper = function(self, a1, a2, a3, a4, a5)
+					local result = hook.previous(self, a1, a2, a3, a4, a5);
+					if ( hook.active ) then FitText(self); end
+					return result;
+				end;
+				r.MA_room, r.SetText = hook, hook.wrapper;
+				FitText(r);
+				table.insert(list, r);
+			end
+		end
+	end
+	if ( f.GetChildren ) then
+		for _, c in ipairs({ f:GetChildren() }) do RoomText(c, list, depth + 1); end
+	end
+end
+
+-- The texts size themselves again (a width of 0 is "fit the words" for this client).
+function UnroomText(f)
+	if ( not f.MA_texts ) then return; end
+	for _, fs in ipairs(f.MA_texts) do
+		local hook = fs.MA_room;
+		if ( hook ) then
+			hook.active = false;
+			if ( fs.SetText == hook.wrapper ) then fs.SetText = hook.previous; end
+			fs.MA_room = nil;
+			fs:SetWidth(0);
+		end
+	end
+	f.MA_texts = nil;
 end
 
 local function ApplyLayout(f, o)
@@ -126,6 +183,8 @@ local function ApplyLayout(f, o)
 	if ( o.scale ) then
 		LockScale(f);
 		f.MA_SetScale(f, o.scale);
+		f.MA_texts = f.MA_texts or {};
+		RoomText(f, f.MA_texts, 0);
 	end
 	if ( o.w or o.h ) then
 		LockSize(f);
